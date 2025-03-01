@@ -1,0 +1,651 @@
+{
+  "name": "Group Contacts Exporter",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "id": "70fc30e0-0636-42d3-ad31-31d787c9262a",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b8070753-4720-42e4-8258-97840475c9a7",
+              "name": "baseUrl",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "c097e692-1b57-4975-a4b7-b9a9e18c964f",
+              "name": "instance",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "937fc579-60a5-4748-a3df-6ed764ff80e7",
+              "name": "apikey",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "a0fc13d1-0e0b-472f-b7c3-3dc3aebf1720",
+              "name": "groupJid",
+              "value": "NUMERO@g.us",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        0
+      ],
+      "id": "0e22b8f7-822a-4d04-b135-0b55026237d4",
+      "name": "EVOLUTION API: CREDENCIAL"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "participants",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        200
+      ],
+      "id": "d5cfd3aa-0a08-4a3a-a698-e4c75277da70",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1540,
+        0
+      ],
+      "id": "3232a670-cda4-4736-998e-acd6a1b435f0",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        2460,
+        260
+      ],
+      "id": "2de9439d-f812-4f22-aa9d-7a79ffb0f51c"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contactId }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "a83970c5-2a56-41e8-a1a3-168c4d3fd211"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "EXISTE CONTATO"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "NÃO EXISTE"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2000,
+        140
+      ],
+      "id": "cace76a8-ddcf-4f4e-801a-e3825ee2b330",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "fields": [
+          "phoneNumbers"
+        ],
+        "useQuery": true,
+        "query": "={{ $json.id.split('@')[0] }}"
+      },
+      "type": "n8n-nodes-base.googleContacts",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        140
+      ],
+      "id": "2b5b4827-ffef-45d1-a922-53f03fa6646b",
+      "name": "BUSCAR CONTATO",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "credentials": {
+        "googleContactsOAuth2Api": {
+          "id": "8LC0xwALUEOPfRC5",
+          "name": "Google Contacts account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "familyName": "=- {{ $('BUSCAR INFORMAÇÕES DO GRUPO').item.json.subject }}",
+        "givenName": "={{ $('Loop Over Items').item.json.name || \"Desconhecido\" }}",
+        "additionalFields": {
+          "phoneUi": {
+            "phoneValues": [
+              {
+                "type": "mobile",
+                "value": "={{ ($('Loop Over Items').item.json.id).split('@')[0] }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleContacts",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        260
+      ],
+      "id": "e293fd16-0acd-47e2-b43b-a7a301ed8057",
+      "name": "CRIAR NOVO CONTATO",
+      "credentials": {
+        "googleContactsOAuth2Api": {
+          "id": "8LC0xwALUEOPfRC5",
+          "name": "Google Contacts account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('EVOLUTION API: CREDENCIAL').item.json.baseUrl }}/group/participants/{{ $('EVOLUTION API: CREDENCIAL').item.json.instance }}?groupJid={{ $('EVOLUTION API: CREDENCIAL').item.json.groupJid }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "getParticipants",
+              "value": "false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('EVOLUTION API: CREDENCIAL').item.json.apikey }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1060,
+        200
+      ],
+      "id": "c9a3983e-dc87-4244-81d2-5709abd06549",
+      "name": "BUSCAR PARTICIPANTES"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('EVOLUTION API: CREDENCIAL').item.json.baseUrl }}/group/findGroupInfos/{{ $('EVOLUTION API: CREDENCIAL').item.json.instance }}?groupJid={{ $('EVOLUTION API: CREDENCIAL').item.json.groupJid }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "getParticipants",
+              "value": "false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('EVOLUTION API: CREDENCIAL').item.json.apikey }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        200
+      ],
+      "id": "f56723e5-64d4-4f70-8a18-f013035970b7",
+      "name": "BUSCAR INFORMAÇÕES DO GRUPO"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('EVOLUTION API: CREDENCIAL').item.json.baseUrl }}/chat/findContacts/{{ $('EVOLUTION API: CREDENCIAL').item.json.instance }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "getParticipants",
+              "value": "false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('EVOLUTION API: CREDENCIAL').item.json.apikey }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        -100
+      ],
+      "id": "c4ddc8a8-9eca-40aa-9480-65608a3c176f",
+      "name": "BUSCAR CONTATOS NA EVOLUTION"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('EVOLUTION API: CREDENCIAL').item.json.baseUrl }}/group/fetchAllGroups/{{ $('EVOLUTION API: CREDENCIAL').item.json.instance }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "getParticipants",
+              "value": "false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('EVOLUTION API: CREDENCIAL').item.json.apikey }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        0
+      ],
+      "id": "75ef1734-2777-4e54-88a0-11b622d2a128",
+      "name": "BUSCAR TODOS OS GRUPOS"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        0
+      ],
+      "id": "baca1b4e-1c9f-4827-8832-ba7eb04a3534",
+      "name": "JUNTAR IDs"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e4575816-f09c-4137-9eb6-f720f734355b",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "={{ $('EVOLUTION API: CREDENCIAL').last().json.groupJid }}",
+              "operator": {
+                "type": "array",
+                "operation": "contains",
+                "rightType": "any"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        0
+      ],
+      "id": "473bd0cd-92bd-4363-b85e-65176cb1c4e5",
+      "name": "CHECAR SE O GRUPO FOI ENCONTRADO"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        -100
+      ],
+      "id": "51843e34-4ae2-45ed-9b00-988f399a9970",
+      "name": "LIMITAR SAIDA"
+    },
+    {
+      "parameters": {
+        "content": "### **Objetivo do Workflow**\n📌 **Automatizar o gerenciamento de contatos do WhatsApp**, verificando e armazenando participantes em **Google Contacts** e **Evolution API**. Isso permite organizar contatos automaticamente e manter atualizações em tempo real.",
+        "height": 120,
+        "width": 580,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        180,
+        200
+      ],
+      "typeVersion": 1,
+      "id": "79b22566-0284-4dbd-ac71-cb077e774f61",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "### **Fluxo de Trabalho (Workflow)**\n1. **Gatilho Manual** (`manualTrigger`): O fluxo inicia quando você clica em \"Test Workflow\".\n2. **Configuração da API** (`EVOLUTION API: CREDENCIAL`): Define credenciais e parâmetros da API, incluindo:\n   - `baseUrl`: URL da API.\n   - `instance`: Instância do serviço (`cyborg-ricardo`).\n   - `apikey`: Chave de autenticação.\n   - `groupJid`: Identificação do grupo no WhatsApp.\n3. **Busca e Processamento de Dados**:\n   - Obtém **todos os grupos disponíveis** (`BUSCAR TODOS OS GRUPOS`).\n   - Valida se o grupo **foi encontrado** (`CHECAR SE O GRUPO FOI ENCONTRADO`).\n   - Busca **informações do grupo** (`BUSCAR INFORMAÇÕES DO GRUPO`).\n   - Busca **participantes do grupo** (`BUSCAR PARTICIPANTES`).\n   - Separa os **dados de cada participante** (`Split Out`).\n4. **Interação com Contatos**:\n   - **Loop sobre os contatos** (`Loop Over Items`).\n   - Verifica se o **contato já existe** (`BUSCAR CONTATO` via Google Contacts API).\n   - **Switch** para decidir:\n     - Se o contato já existe → continua.\n     - Se não existe → **cria um novo contato** (`CRIAR NOVO CONTATO`).\n5. **Integração com a Evolution API**:\n   - **Busca contatos na Evolution API** (`BUSCAR CONTATOS NA EVOLUTION`).\n   - Faz **requisições HTTP** para buscar informações do grupo, contatos e participantes.",
+        "height": 600,
+        "width": 580,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        180,
+        340
+      ],
+      "typeVersion": 1,
+      "id": "9277b665-8281-42f3-b0b6-fdc9d3392855",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "### INFO EVOLUTION API",
+        "height": 230,
+        "width": 213,
+        "color": 4
+      },
+      "id": "c594153c-3a0e-4df3-afa0-ad6667daaf62",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        580,
+        -60
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "EVOLUTION API: CREDENCIAL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EVOLUTION API: CREDENCIAL": {
+      "main": [
+        [
+          {
+            "node": "BUSCAR TODOS OS GRUPOS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "LIMITAR SAIDA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUSCAR CONTATO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CRIAR NOVO CONTATO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUSCAR CONTATO": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRIAR NOVO CONTATO": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUSCAR PARTICIPANTES": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUSCAR INFORMAÇÕES DO GRUPO": {
+      "main": [
+        [
+          {
+            "node": "BUSCAR PARTICIPANTES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUSCAR TODOS OS GRUPOS": {
+      "main": [
+        [
+          {
+            "node": "JUNTAR IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JUNTAR IDs": {
+      "main": [
+        [
+          {
+            "node": "CHECAR SE O GRUPO FOI ENCONTRADO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CHECAR SE O GRUPO FOI ENCONTRADO": {
+      "main": [
+        [
+          {
+            "node": "BUSCAR INFORMAÇÕES DO GRUPO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIMITAR SAIDA": {
+      "main": [
+        [
+          {
+            "node": "BUSCAR CONTATOS NA EVOLUTION",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9c63ac34-9a5d-47d6-aa3e-632fb7d9bc7f",
+  "meta": {
+    "instanceId": "62367a1b47d37a91d4df7c4c2b2c4f3c4c129410d6edae0ec56201cd0ac05327"
+  },
+  "id": "1fEYw6TE1o5r4dKb",
+  "tags": [
+    {
+      "createdAt": "2025-02-19T13:08:37.531Z",
+      "updatedAt": "2025-02-19T13:08:37.531Z",
+      "id": "JJaB9g0r8Hkf9fxg",
+      "name": "Cyborg Solutions"
+    },
+    {
+      "createdAt": "2025-02-28T23:25:23.402Z",
+      "updatedAt": "2025-02-28T23:25:23.402Z",
+      "id": "rf90o84PlRg1o1K6",
+      "name": "Useful Code"
+    }
+  ]
+}
