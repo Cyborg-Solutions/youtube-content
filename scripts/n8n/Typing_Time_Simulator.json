@@ -1,0 +1,273 @@
+{
+  "name": "[DEMO] Typing Time Simulator",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('CONFIGURAÇÃO EVOLUTION API').last().json.evolution_url }}/message/sendText/{{ $('CONFIGURAÇÃO EVOLUTION API').last().json.evolution_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('CONFIGURAÇÃO EVOLUTION API').last().json.evolution_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('DEFINIR TEXTO A SER ENVIADO').item.json.phoneNumber }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ JSON.stringify($('DEFINIR TEXTO A SER ENVIADO').last().json.text)\n    .slice(1, -1)\n    .replace(/\\[.*?\\]\\((.*?)\\)/g, \"$1\")\n    .replace(/\\\\\\\\u([a-fA-F0-9]{4})/g, (match, group1) => String.fromCharCode(parseInt(group1, 16)))\n    .replace(/\\\\n(\\d*)/g, '\\n$1')\n    .replace(/\\\\./g, '\\n')\n    .replace(/\\*\\*/g, '*')}}"
+            },
+            {
+              "name": "linkPreview",
+              "value": "={{ Boolean(false) }}"
+            },
+            {
+              "name": "delay",
+              "value": "={{ parseInt($json.delay) }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        0
+      ],
+      "id": "bd179088-7f01-416f-aa3a-4f87d023f563",
+      "name": "ENVIAR MENSAGEM DE TEXTO"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b3ff71a2-8cb9-4ab9-a2c2-5ac7b58cbfa5",
+              "name": "text",
+              "value": "Na era da transformação digital, sua empresa precisa se destacar ao oferecer soluções que unem tecnologia avançada a práticas eficientes. Para isso, é fundamental investir continuamente em pesquisa e desenvolvimento, criando produtos e serviços que otimizem processos, reduzam custos e impulsionem o crescimento dos seus clientes.",
+              "type": "string"
+            },
+            {
+              "id": "305cd856-d6eb-4656-9d05-8302560965ed",
+              "name": "phoneNumber",
+              "value": "5521983638327",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "selected",
+        "includeFields": "phonenumber, firstname, lastname, email",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        0
+      ],
+      "id": "794450b7-f3a3-439d-bda8-7b927b57099f",
+      "name": "DEFINIR TEXTO A SER ENVIADO"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d2e95e06-71e2-40a0-a286-4c5a7d5b771e",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "66e5c550-fef4-4210-935e-19be9d399211",
+              "name": "delay",
+              "value": "={{ parseInt(Math.min(Math.max($json.text.replace(/\\s+/g, \"\").length * 12, 1000), 10000)) }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        0
+      ],
+      "id": "82dbbd8f-1dcb-4ffb-b552-79ae2f43b99e",
+      "name": "DEFINIR TEMPO DE DIGITAÇÃO"
+    },
+    {
+      "parameters": {
+        "content": "### COMO É FEITO O CÁLCULO DO DELAY? \n### BLOCO: ```(DEFINIR TEMPO DE DIGITAÇÃO)```\n--\n1. **Remoção dos espaços:**  \n   O código pega o texto original (`$json.text`) e remove todos os espaços utilizando o método `.replace(/\\s+/g, \"\")`. Isso resulta em uma string composta apenas pelos caracteres (sem espaços).\n\n2. **Contagem de caracteres:**  \n   Em seguida, é calculado o número de caracteres dessa string sem espaços usando `.length`.\n\n3. **Multiplicação por 12:**  \n   O número de caracteres é multiplicado por 12. Essa operação simula um tempo de digitação proporcional ao tamanho do texto.\n\n4. **Aplicação do limite mínimo:**  \n   É utilizado `Math.max(valor, 1000)` para garantir que o delay nunca seja inferior a 1000 milissegundos, mesmo que o cálculo baseado no tamanho resulte em um valor menor.\n\n5. **Aplicação do limite máximo:**  \n   Em seguida, `Math.min(valor, 10000)` é aplicado para que o delay não ultrapasse 10000 milissegundos, mesmo que o cálculo gere um valor maior.\n\n6. **Conversão para número inteiro:**  \n   Por fim, a função `parseInt` converte o resultado final para um número inteiro.",
+        "height": 580,
+        "width": 580,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -20,
+        200
+      ],
+      "typeVersion": 1,
+      "id": "431a88d0-676a-44a2-93f6-e5c953443f3b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "066b5d45-d733-47cd-8798-668284feb45a",
+              "name": "evolution_url",
+              "value": "api_url",
+              "type": "string"
+            },
+            {
+              "id": "7a58ae9c-4f08-4d2a-8a32-5780394366d4",
+              "name": "evolution_instance",
+              "value": "api_name",
+              "type": "string"
+            },
+            {
+              "id": "e2861368-f9ef-4bc3-938b-cd06fe7e5264",
+              "name": "evolution_token",
+              "value": "api_key",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "id": "76875b5f-d2fb-418b-85ba-3ca1786b287f",
+      "name": "CONFIGURAÇÃO EVOLUTION API"
+    },
+    {
+      "parameters": {
+        "content": "### COMO É FEITA A TRATATIVA DO TEXTO?\n### BLOCO: ```(ENVIAR MENSAGEM DE TEXTO)```\n--\n1. **Serialização e remoção das aspas:**  \n   O código pega o valor do campo `text` do nó `DEFINIR TEXTO A SER ENVIADO` e o converte em uma string JSON usando `JSON.stringify(...)`. Isso adiciona aspas no início e no fim do texto. Em seguida, o método `.slice(1, -1)` remove essas aspas, deixando o texto em seu formato original.\n\n2. **Conversão de links no formato Markdown:**  \n   O trecho `.replace(/\\[.*?\\]\\((.*?)\\)/g, \"$1\")` identifica links escritos no formato Markdown, ou seja, textos como `[algum texto](URL)`. Essa expressão regular captura apenas a URL e descarta o texto entre colchetes, substituindo a estrutura completa pela URL.\n\n3. **Conversão de sequências Unicode escapadas:**  \n   A instrução `.replace(/\\\\\\\\u([a-fA-F0-9]{4})/g, (match, group1) => String.fromCharCode(parseInt(group1, 16)))` busca por sequências Unicode no formato `\\uXXXX` (onde `XXXX` são dígitos hexadecimais) e converte cada uma delas para o caractere correspondente usando `String.fromCharCode`.\n\n4. **Transformação de quebras de linha com dígitos:**  \n   Com `.replace(/\\\\n(\\d*)/g, '\\n$1')`, o código substitui a sequência de escape `\\n` que pode ser seguida de dígitos por uma quebra de linha real, mantendo qualquer dígito que venha logo após.\n\n5. **Substituição de outras sequências de escape:**  \n   A expressão `.replace(/\\\\./g, '\\n')` pega qualquer outra sequência de escape (qualquer caractere precedido por uma barra invertida) e a substitui por uma quebra de linha, padronizando a formatação.\n\n6. **Simplificação da formatação com asteriscos:**  \n\n   Por fim, o método `.replace(/\\*\\*/g, '*')` substitui ocorrências de dois asteriscos consecutivos (`**`) por um único asterisco (`*`), simplificando a formatação do texto.",
+        "height": 740,
+        "width": 580,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        580,
+        200
+      ],
+      "typeVersion": 1,
+      "id": "70b6de13-456f-4e61-9014-a0ae07ef4c2f",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Este fluxo automatizado realiza o envio de uma mensagem, simulando o tempo de digitação de acordo com o tamanho do texto. Veja como ele funciona:\n\n1. **Início e Configuração:**  \n   O fluxo é iniciado manualmente. Em seguida, são configuradas as informações da API (como URL, instância e token) e os dados da mensagem (texto e número do destinatário).\n\n2. **Simulação do Tempo de Digitação:**  \n   Para deixar o envio mais natural, o sistema simula o tempo que alguém levaria para digitar a mensagem. Isso é feito da seguinte maneira:\n   \n   - **Remoção de espaços:**  \n     O texto original tem seus espaços removidos para contar somente os caracteres.\n   \n   - **Contagem e Cálculo:**  \n     É contado o número de caracteres e esse número é multiplicado por 12, gerando um tempo proporcional ao tamanho da mensagem.\n   \n   - **Limites de Tempo:**  \n     O tempo calculado é ajustado para que nunca seja inferior a 1 segundo (1000 ms) nem superior a 10 segundos (10000 ms).\n\n3. **Tratamento do Texto:**  \n   Antes do envio, o texto passa por uma série de transformações para corrigir formatações:\n   \n   - As aspas extras são removidas.\n   - Links no formato Markdown são convertidos para URLs simples.\n   - Sequências Unicode escapadas são convertidas para seus caracteres reais.\n   - Quebras de linha e outras sequências de escape são transformadas em quebras de linha reais.\n   - A formatação com asteriscos é simplificada.\n\n4. **Envio da Mensagem:**  \n   Finalmente, o fluxo envia a mensagem por meio de uma requisição HTTP POST para a API, utilizando os dados configurados e o delay calculado.",
+        "height": 740,
+        "width": 580,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -620,
+        200
+      ],
+      "typeVersion": 1,
+      "id": "da72d9ac-3dbc-4b98-b5c9-9b58aaeb0f92",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "DEFINIR TEXTO A SER ENVIADO": {
+      "main": [
+        [
+          {
+            "node": "DEFINIR TEMPO DE DIGITAÇÃO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "CONFIGURAÇÃO EVOLUTION API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DEFINIR TEMPO DE DIGITAÇÃO": {
+      "main": [
+        [
+          {
+            "node": "ENVIAR MENSAGEM DE TEXTO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIGURAÇÃO EVOLUTION API": {
+      "main": [
+        [
+          {
+            "node": "DEFINIR TEXTO A SER ENVIADO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6b2e105e-2b12-4d94-92d7-95279328409e",
+  "meta": {
+    "instanceId": "62367a1b47d37a91d4df7c4c2b2c4f3c4c129410d6edae0ec56201cd0ac05327"
+  },
+  "id": "z7mObMbYf1Zh0cul",
+  "tags": [
+    {
+      "createdAt": "2025-02-19T13:08:37.531Z",
+      "updatedAt": "2025-02-19T13:08:37.531Z",
+      "id": "JJaB9g0r8Hkf9fxg",
+      "name": "Cyborg Solutions"
+    },
+    {
+      "createdAt": "2025-02-28T23:25:23.402Z",
+      "updatedAt": "2025-02-28T23:25:23.402Z",
+      "id": "rf90o84PlRg1o1K6",
+      "name": "Useful Code"
+    }
+  ]
+}
