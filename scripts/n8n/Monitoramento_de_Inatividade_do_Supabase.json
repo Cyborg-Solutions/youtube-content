@@ -1,0 +1,444 @@
+{
+  "name": "Monitoramento de Inatividade do Supabase",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "daysInterval": 2,
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        120
+      ],
+      "id": "0d9c206f-e592-47d4-bcf9-9a29dc554861",
+      "name": "A CADA 2 DIAS ÀS 3H"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DO $$\nBEGIN\n    -- Cria a tabela se ela não existir\n    IF NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'keep_alive') THEN\n        CREATE TABLE keep_alive (\n            id SERIAL PRIMARY KEY,\n            ping_count INTEGER NOT NULL DEFAULT 0,\n            last_ping_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP\n        );\n\n        -- Insere o registro inicial\n        INSERT INTO keep_alive (id, ping_count, last_ping_time)\n        VALUES (1, 1, CURRENT_TIMESTAMP);\n    ELSE\n        -- Atualiza o registro existente\n        UPDATE keep_alive\n        SET ping_count = ping_count + 1,\n            last_ping_time = CURRENT_TIMESTAMP\n        WHERE id = 1;\n    END IF;\nEND $$;\n\n-- Retorna o número total de pings e o horário do último ping\nSELECT ping_count, last_ping_time FROM keep_alive WHERE id = 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        120
+      ],
+      "id": "209fbcf8-07c9-45e4-8bda-a1b63ab5bc5e",
+      "name": "PING SUPABASE",
+      "retryOnFail": false,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "postgres": {
+          "id": "8xywopJW8rWr3Tq1",
+          "name": "Geni Chat (SUPABASE)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "007893c2-6560-4ea1-9df9-4282bb3398db",
+              "name": "evolution_url",
+              "value": "URL",
+              "type": "string"
+            },
+            {
+              "id": "df840e74-4e09-4bab-a959-41ab638553a3",
+              "name": "evolution_key",
+              "value": "API_KEY",
+              "type": "string"
+            },
+            {
+              "id": "9051ade4-a830-48ca-aabd-d88aab6ecac5",
+              "name": "evolution_instance_global",
+              "value": "INSTANCIA",
+              "type": "string"
+            },
+            {
+              "id": "5902f655-f800-4574-bfc5-359e6ca3a12e",
+              "name": "number_to_send",
+              "value": "5521983638327",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        120
+      ],
+      "id": "3923603d-2cee-4f93-aea2-9c7d13df0d9f",
+      "name": "CONFIGURAÇÃO EVOLUTION API"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "55457d0a-e488-413a-ab38-e04a2f5f7bb4",
+              "name": "message",
+              "value": "={{ $json.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        220
+      ],
+      "id": "87254b50-0af6-43ab-96a5-5db661e6ee9e",
+      "name": "SALVAR ERRO"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('CONFIGURAÇÃO EVOLUTION API').last().json.evolution_url }}/message/sendText/{{ $('CONFIGURAÇÃO EVOLUTION API').last().json.evolution_instance_global }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('CONFIGURAÇÃO EVOLUTION API').last().json.evolution_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('CONFIGURAÇÃO EVOLUTION API').last().json.number_to_send }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $('PREPARAR MENSAGEM').last().json.text }}"
+            },
+            {
+              "name": "linkPreview",
+              "value": "={{ Boolean(true) }}"
+            },
+            {
+              "name": "delay",
+              "value": "={{ parseInt(1000) }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        120
+      ],
+      "id": "19d3a2f0-e575-4c4f-abbf-37c9eb0045d1",
+      "name": "ENVIAR MENSAGEM DE TEXTO",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## 🛠️ Monitoramento de Inatividade do Supabase\n\n### 🎯 Objetivo\n#### Evitar que instâncias do Supabase entrem em estado de hibernação por inatividade, garantindo que serviços dependentes (como cron jobs, APIs e bots) continuem funcionando sem interrupções.",
+        "width": 880,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -940,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "1de7940e-143a-4585-99bd-bd5476dcf418",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "#### 💡 Inspiração para o Desenvolvimento\nProjeto original: [supabase-inactive-fix](https://github.com/travisvn/supabase-inactive-fix)\n> Utiliza pings periódicos via query SQL para manter a instância ativa.\n\n#### 🧩 Visão Geral do Workflow\n1. **Trigger agendado**: executa a cada 2 dias às 3h da manhã.\n2. **Execução de query no Supabase**:\n   - Cria a tabela `keep_alive` se ela não existir.\n   - Atualiza o registro com `ping_count` e `last_ping_time`.\n3. **Captura de erros** (caso falhe a conexão com o banco).\n4. **Geração de mensagem de alerta personalizada**.\n5. **Envio automático via WhatsApp pela Evolution API**.\n\n### ⚙️ Query Executada\n```sql\nDO $$\nBEGIN\n  IF NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'keep_alive') THEN\n    CREATE TABLE keep_alive (\n      id SERIAL PRIMARY KEY,\n      ping_count INTEGER NOT NULL DEFAULT 0,\n      last_ping_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP\n    );\n    INSERT INTO keep_alive (id, ping_count, last_ping_time)\n    VALUES (1, 1, CURRENT_TIMESTAMP);\n  ELSE\n    UPDATE keep_alive\n    SET ping_count = ping_count + 1,\n        last_ping_time = CURRENT_TIMESTAMP\n    WHERE id = 1;\n  END IF;\nEND $$;\n```\n### 📡 Notificação via WhatsApp\nMensagem formatada enviada em caso de erro:\n```text\n📛 *Erro no Heartbeat do Supabase*\n- 🕒 *Data/Hora:* 04/04/2025 03:00:00\n- ❗ *Erro:* ```erro informado pelo Supabase```\n\nPor favor, verifique a conexão com o banco de dados ou os logs do agendador.\n```",
+        "height": 860,
+        "width": 880,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -940,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "b2c5ffa5-15a5-4363-b5c2-95668d792996",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "#### ✅ Benefícios\n- Mantém o Supabase acordado e responsivo.\n- Previne falhas ocultas por inatividade.\n- Alerta automático em tempo real via WhatsApp.\n- Totalmente customizável e extensível via n8n.\n\n#### 🧭 Próximos Passos (Ideias de Expansão)\n- ✅ Registro de pings bem-sucedidos em log.\n- 🔔 Notificações via outros canais (Telegram, Email).\n- 📊 Dashboard com uptime e histórico.\n- 📥 Retentativa com fallback em caso de falha persistente.",
+        "height": 280,
+        "width": 880,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -940,
+        1060
+      ],
+      "typeVersion": 1,
+      "id": "708c1a52-2447-4493-8c93-dc69d38a5e01",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## 🔗 Créditos\n- Repositório base: [supabase-inactive-fix](https://github.com/travisvn/supabase-inactive-fix)\n- Adaptado e estendido com ❤️ por Ricardo / Cyborg Solutions\n\n## 📢 Mensagem Final\nOlá! Me chamo **Ricardo**, trabalho com programação desde os meus 14 anos. Hoje, aos 26, estou focado no mercado de **automação** desde janeiro de 2024, quando decidi oficialmente sair do CLT para empreender e ajudar empresas a otimizar processos com tecnologia.\n\nEste workflow é compartilhado gratuitamente por respeito à comunidade e ao espírito do **código aberto**. Não seria justo monetizar em cima de um projeto open source sem adicionar melhorias reais.\n\nSe você gostou dessa automação e deseja algo **personalizado** para você ou sua empresa, entre em contato comigo pelo WhatsApp. Envie a mensagem abaixo e mencione que veio por este fluxo — será um prazer conversar e, quem sabe, iniciarmos uma parceria! 🚀\n\n📲 **Clique aqui para falar comigo no WhatsApp:**  \n👉 [https://nanolink.site/whatsapp-heartbeat](https://nanolink.site/whatsapp-heartbeat)",
+        "height": 440,
+        "width": 880,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -940,
+        1360
+      ],
+      "typeVersion": 1,
+      "id": "5476fc33-972c-4d2b-850f-b1726672587b",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e750772d-a9d0-4d45-8698-2720eec6e958",
+              "name": "ping_count",
+              "value": "={{ $json.ping_count }}",
+              "type": "number"
+            },
+            {
+              "id": "236599f8-67da-4ae1-b6b5-164f87df8670",
+              "name": "last_ping_time",
+              "value": "={{ $json.last_ping_time }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        20
+      ],
+      "id": "1855c268-a5e3-44d3-b151-3663b947875e",
+      "name": "SALVAR EXECUÇÃO COM SUCESSO"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b3ff71a2-8cb9-4ab9-a2c2-5ac7b58cbfa5",
+              "name": "text",
+              "value": "=📛 *Erro no Heartbeat do Supabase*\n- 🕒 *Data/Hora:* {{ (() => {\n  const now = new Date();\n  const pad = n => String(n).padStart(2, '0');\n  return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;\n})() }}\n- ❗ *Erro:* ```{{ $('SALVAR ERRO').item.json.message }}```\n\nPor favor, verifique a conexão com o banco de dados ou os logs do agendador.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        220
+      ],
+      "id": "b3ddd70f-dd7b-4821-a00c-a1a0d67c206b",
+      "name": "DEFINIR TEXTO A SER ENVIADO EM CASO DE ERRO"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b3ff71a2-8cb9-4ab9-a2c2-5ac7b58cbfa5",
+              "name": "text",
+              "value": "=✅ *Heartbeat executado com sucesso!*\n- 📈 *Total de Pings:* {{ $json.ping_count }}\n- 🕒 *Último Ping:* {{ new Date($json.last_ping_time).toLocaleString(\"pt-BR\", { timeZone: \"America/Sao_Paulo\", year: \"numeric\", month: \"2-digit\", day: \"2-digit\", hour: \"2-digit\", minute: \"2-digit\", second: \"2-digit\" }) }}\n\nTudo funcionando corretamente! 🚀\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        20
+      ],
+      "id": "809bc958-5e17-41b9-a0cc-863417d8fa0e",
+      "name": "DEFINIR TEXTO A SER ENVIADO EM CASO DE SUCESSO"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "8a557fa8-ec29-4920-8f42-dd8fcf03583e",
+      "name": "PREPARAR MENSAGEM"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "A CADA 2 DIAS ÀS 3H": {
+      "main": [
+        [
+          {
+            "node": "CONFIGURAÇÃO EVOLUTION API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIGURAÇÃO EVOLUTION API": {
+      "main": [
+        [
+          {
+            "node": "PING SUPABASE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PING SUPABASE": {
+      "main": [
+        [
+          {
+            "node": "SALVAR EXECUÇÃO COM SUCESSO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SALVAR ERRO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SALVAR ERRO": {
+      "main": [
+        [
+          {
+            "node": "DEFINIR TEXTO A SER ENVIADO EM CASO DE ERRO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SALVAR EXECUÇÃO COM SUCESSO": {
+      "main": [
+        [
+          {
+            "node": "DEFINIR TEXTO A SER ENVIADO EM CASO DE SUCESSO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DEFINIR TEXTO A SER ENVIADO EM CASO DE ERRO": {
+      "main": [
+        [
+          {
+            "node": "PREPARAR MENSAGEM",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "DEFINIR TEXTO A SER ENVIADO EM CASO DE SUCESSO": {
+      "main": [
+        [
+          {
+            "node": "PREPARAR MENSAGEM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARAR MENSAGEM": {
+      "main": [
+        [
+          {
+            "node": "ENVIAR MENSAGEM DE TEXTO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6235bfe9-0cbd-47d1-8b3c-8e51cfa26bff",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62367a1b47d37a91d4df7c4c2b2c4f3c4c129410d6edae0ec56201cd0ac05327"
+  },
+  "id": "uxGqBHl8EKYhllrS",
+  "tags": [
+    {
+      "createdAt": "2025-02-19T13:08:37.531Z",
+      "updatedAt": "2025-02-19T13:08:37.531Z",
+      "id": "JJaB9g0r8Hkf9fxg",
+      "name": "Cyborg Solutions"
+    },
+    {
+      "createdAt": "2025-02-28T23:25:23.402Z",
+      "updatedAt": "2025-02-28T23:25:23.402Z",
+      "id": "rf90o84PlRg1o1K6",
+      "name": "Useful Code"
+    },
+    {
+      "name": "N8N v.1.85.4",
+      "id": "W6ozYyX3tdhYgZ8v",
+      "createdAt": "2025-04-04T12:40:01.710Z",
+      "updatedAt": "2025-04-04T12:40:01.710Z"
+    }
+  ]
+}
